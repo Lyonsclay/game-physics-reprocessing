@@ -22,7 +22,7 @@ type bodyT = {
   velocity: velocityT
 };
 
-type state = {player: bodyT};
+type stateT =  bodyT;
 
 /* This will be used as a maximum speed limit for all objects/bodies. */
 let terminalSpeed: float = 2000.0;
@@ -40,13 +40,12 @@ let getNewVelocity =
   : velocityT
     =>
   switch (velocity) {
-  | velocityT when speed(velocity) > terminalSpeed => {x: 0.0, y: 0.0}
-  | velocityT => computeVelocity(velocity, acceleration, elapsedTime)
+  | _ when speed(velocity) > terminalSpeed => {x: 0.0, y: 0.0}
+  | _ => computeVelocity(velocity, acceleration, elapsedTime)
   };
 
 let setup = env => {
   Env.size(~width=600, ~height=600, env);
-  let player: bodyT =
     {
       position: {
         x: 150.0,
@@ -57,17 +56,15 @@ let setup = env => {
         y: 20.0
       }
     };
-  ();
 };
 
-let draw = (state, env) => {
-  let {player} = state;
+let draw = (player, env) => {
   Draw.background(Utils.color(~r=19, ~g=217, ~b=229, ~a=255), env);
   Draw.fill(Utils.color(~r=41, ~g=166, ~b=244, ~a=255), env);
   let posX = player.position.x;
   let posY = player.position.y;
   Draw.rectf(~pos=(posX, posY), ~width=100., ~height=100., env);
-  let p = Env.key(Space, env) ? "true" : "false";
+  /* let p = Env.key(Space, env) ? "true" : "false"; */
 
   let status =
     "posX: "
@@ -86,18 +83,15 @@ let draw = (state, env) => {
   let up: accelerationT = { x: 0.0, y: (-50.0) };
   let down: accelerationT = { x: 0.0, y: 50.0 };
   {
-    player: {
       position: {
         x: 0.0,
         y:
           player.position.y > 500. ?
             500.0 : player.position.y +. velocity.y *. Env.deltaTime(env)
       },
-      velocity: getNewVelocity(velocity, down, Env.deltaTime(env))
-        /* Env.key(Space, env) ? */
-          /* getNewVelocity(velocity, up, Env.deltaTime(env)) : */
-          /* getNewVelocity(velocity, down, Env.deltaTime(env)) */
-    }
+      velocity: Env.key(Space, env) ?
+          getNewVelocity(velocity, up, Env.deltaTime(env)) :
+          getNewVelocity(velocity, down, Env.deltaTime(env))
   };
 };
 
