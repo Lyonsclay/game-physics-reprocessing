@@ -27,6 +27,12 @@ git clone git@github.com:Lyonsclay/game-physics-reprocessing.git
 npm install
 ```
 
+### Checkout `physics` branch
+
+```
+git checkout physics
+```
+
 ### Build
 ```
 npm run build
