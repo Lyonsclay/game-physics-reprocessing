@@ -30,7 +30,10 @@ type bodyT = {
   acceleration: accelerationT,
 };
 
-type stateT = {player: bodyT};
+type stateT = {
+  player: bodyT,
+  poop: bodyT,
+};
 
 /* This will be used as a maximum speed limit for all objects/bodies. */
 let terminalSpeed: float = 350.0;
@@ -104,6 +107,19 @@ let getNewVelocity =
   | _ => computeVelocity(velocity, acceleration, elapsedTime)
   };
 
+let getNewPoop = (player: bodyT, poop: bodyT, env) : bodyT => {
+  let velocity: velocityT =
+    switch (env) {
+    | _ when Env.key(Space, env) === true => {x: player.velocity.x, y: 0.0}
+    | _ => poop.velocity
+    };
+  let acceleration: accelerationT = {x: 0.0, y: (-80.0)};
+  let elapsedTime = Env.deltaTime(env);
+  let tempBody: bodyT = {velocity, position: poop.position, acceleration};
+  let position: positionT = getNewPosition(tempBody, elapsedTime);
+
+  {position, velocity, acceleration};
+};
 let debugPlayerDisplay = (player, env) => {
   let posStatus =
     "posX: "
@@ -160,18 +176,19 @@ let setup = env : stateT => {
   Env.size(~width=screenWidth, ~height=screenHeight, env);
   {player: initialPlayer, poop: initialPoop};
 };
-let draw = ({player}, env) => {
+let draw = ({player, poop}, env) => {
   Draw.background(Utils.color(~r=19, ~g=217, ~b=229, ~a=255), env);
   Draw.fill(Utils.color(~r=41, ~g=166, ~b=244, ~a=255), env);
   let posX = player.position.x;
   let posY = player.position.y;
   Draw.rectf(~pos=(posX, posY), ~width=pWidth, ~height=pHeight, env);
-  let newPlayer = {
+  let newPlayer: bodyT = {
     position: getNewPosition(player, Env.deltaTime(env)),
     velocity: getNewVelocity(player, Env.deltaTime(env)),
     acceleration: getPlayerAcceleration(env),
   };
-  {player: newPlayer};
+  let newPoop: bodyT = getNewPoop(player, poop, env);
+  {player: newPlayer, poop: newPoop};
 };
 
 run(~setup, ~draw, ());
