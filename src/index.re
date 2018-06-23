@@ -33,8 +33,15 @@ type bodyT = {
 type stateT = {player: bodyT};
 
 /* This will be used as a maximum speed limit for all objects/bodies. */
-let terminalSpeed: float = 250.0;
-let gravity: accelerationT = {x: 0.0, y: 25.0};
+let terminalSpeed: float = 350.0;
+let gravity: accelerationT = {x: 0.0, y: 10.0};
+let screenWidth: int = 1680;
+let screenHeight: int = 1000;
+let pWidth: float = 50.0;
+let pHeight: float = 50.0;
+let maxPosX: float = float_of_int(screenWidth) -. pWidth;
+let maxPosY: float = float_of_int(screenHeight) -. pHeight;
+let playerThrust: float = 80.0;
 
 let computeVelocity =
     (velocity: velocityT, acceleration: accelerationT, time: deltaT)
@@ -44,73 +51,60 @@ let computeVelocity =
 };
 
 let getNewPosition = ({velocity, position}, elapsedTime: float) : positionT => {
-  let margin: float = 0.01;
-  let newY =
-    switch (position.y) {
-    | _ when position.y < margin && velocity.y < 0.0 => 0.0
-    | _ when position.y > 500.0 -. margin && velocity.y > 0.0 => 500.0
-    | _ => position.y +. velocity.y *. elapsedTime
-    };
+  /* let margin: float = 0.01; */
   let newX =
     switch (position.x) {
-    | _ when position.x < margin && velocity.x <= 0.0 => 0.0
-    | _ when position.x >= 500.0 -. margin && velocity.x > 0.0 => 500.0
+    | _ when position.x === 0.0 => 0.0
+    | _ when position.x === maxPosX => maxPosX
     | _ => position.x +. velocity.x *. elapsedTime
     };
+  let newY =
+    switch (position.y) {
+    | _ when position.y === 0.0 => 0.0
+    | _ when position.y === maxPosY => maxPosY
+    | _ => position.y +. velocity.y *. elapsedTime
+    };
+
   {x: newX, y: newY};
 };
 
 let getPlayerAcceleration = env : accelerationT => {
-  let acceleration: accelerationT =
+  let accelerationX: float =
     switch (env) {
-    | _ when Env.key(H, env) === true => {x: (-50.0), y: 0.0}
-    | _ when Env.key(J, env) === true => {x: 0.0, y: 50.0}
-    | _ when Env.key(K, env) === true => {x: 0.0, y: (-50.0)}
-    | _ when Env.key(L, env) === true => {x: 50.0, y: 0.0}
-    | _ => {x: 0.0, y: 0.0}
+    | _ when Env.key(H, env) === true && Env.key(L, env) === true => 0.0
+    | _ when Env.key(H, env) === true => (-1.0) *. playerThrust
+    | _ when Env.key(L, env) === true => playerThrust
+    | _ => 0.0
+    };
+  let accelerationY: float =
+    switch (env) {
+    | _ when Env.key(J, env) === true && Env.key(K, env) === true => 0.0
+    | _ when Env.key(J, env) === true => playerThrust
+    | _ when Env.key(K, env) === true => (-1.0) *. playerThrust
+    | _ => 0.0
     };
 
-  {x: acceleration.x, y: acceleration.y +. gravity.y};
+  {x: accelerationX, y: accelerationY +. gravity.y};
 };
 let getNewVelocity =
     ({velocity, position, acceleration}, elapsedTime: float)
     : velocityT =>
-  /* let margin: float = 0.01; */
-  /* let acceleration = getPlayerAcceleration(env); */
   switch (velocity) {
   | _ when position.y <= 0.0 && velocity.y < 0.0 => {x: velocity.x, y: 0.0}
   | _ when position.x <= 0.0 && velocity.x < 0.0 => {x: 0.0, y: velocity.y}
-  | _ when position.y >= 500.0 && velocity.y > 0.0 => {x: velocity.x, y: 0.0}
-  | _ when position.x >= 500.0 && velocity.x > 0.0 => {x: 0.0, y: velocity.y}
+  | _ when position.y >= maxPosY && velocity.y > 0.0 => {
+      x: velocity.x,
+      y: 0.0,
+    }
+  | _ when position.x >= maxPosX && velocity.x > 0.0 => {
+      x: 0.0,
+      y: velocity.y,
+    }
   | _ when speed(velocity) >= terminalSpeed => velocity
   | _ => computeVelocity(velocity, acceleration, elapsedTime)
   };
-let initialPlayer: bodyT = {
-  position: {
-    x: 150.0,
-    y: 50.0,
-  },
-  velocity: {
-    x: 0.0,
-    y: 20.0,
-  },
-  acceleration: {
-    x: 0.0,
-    y: 0.0,
-  },
-};
 
-let setup = env : stateT => {
-  Env.size(~width=600, ~height=600, env);
-  {player: initialPlayer};
-};
-let draw = ({player}, env) => {
-  Draw.background(Utils.color(~r=19, ~g=217, ~b=229, ~a=255), env);
-  Draw.fill(Utils.color(~r=41, ~g=166, ~b=244, ~a=255), env);
-  let posX = player.position.x;
-  let posY = player.position.y;
-  Draw.rectf(~pos=(posX, posY), ~width=100., ~height=100., env);
-
+let debugPlayerDisplay = (player, env) => {
   let posStatus =
     "posX: "
     ++ string_of_float(player.position.x)
@@ -132,16 +126,50 @@ let draw = ({player}, env) => {
   Draw.text(~body=deltaStatus, ~pos=(150, 150), env);
   Draw.text(~body=posStatus, ~pos=(150, 200), env);
   Draw.text(~body=accelerationStatus, ~pos=(150, 250), env);
+};
 
-  /* let up: accelerationT = {x: 0.0, y: (-50.0)}; */
-  /* let down: accelerationT = {x: 0.0, y: 50.0}; */
+let initialPlayer: bodyT = {
+  position: {
+    x: 150.0,
+    y: 50.0,
+  },
+  velocity: {
+    x: 0.0,
+    y: 20.0,
+  },
+  acceleration: {
+    x: 0.0,
+    y: 0.0,
+  },
+};
+let initialPoop: bodyT = {
+  position: {
+    x: (-40.0),
+    y: (-40.0),
+  },
+  velocity: {
+    x: 0.0,
+    y: 0.0,
+  },
+  acceleration: {
+    x: 0.0,
+    y: 0.0,
+  },
+};
+let setup = env : stateT => {
+  Env.size(~width=screenWidth, ~height=screenHeight, env);
+  {player: initialPlayer, poop: initialPoop};
+};
+let draw = ({player}, env) => {
+  Draw.background(Utils.color(~r=19, ~g=217, ~b=229, ~a=255), env);
+  Draw.fill(Utils.color(~r=41, ~g=166, ~b=244, ~a=255), env);
+  let posX = player.position.x;
+  let posY = player.position.y;
+  Draw.rectf(~pos=(posX, posY), ~width=pWidth, ~height=pHeight, env);
   let newPlayer = {
     position: getNewPosition(player, Env.deltaTime(env)),
     velocity: getNewVelocity(player, Env.deltaTime(env)),
     acceleration: getPlayerAcceleration(env),
-    /* Env.key(K, env) ? */
-    /*   getNewVelocity(player, up, Env.deltaTime(env)) : */
-    /*   getNewVelocity(player, down, Env.deltaTime(env)), */
   };
   {player: newPlayer};
 };
