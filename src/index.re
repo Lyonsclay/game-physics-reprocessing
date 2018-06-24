@@ -32,7 +32,7 @@ type bodyT = {
 
 type stateT = {
   player: bodyT,
-  /* poop: bodyT, */
+  poop: bodyT,
 };
 
 /* This will be used as a maximum speed limit for all objects/bodies. */
@@ -47,6 +47,30 @@ let poopHeight: float = 7.0;
 let maxPosX: float = float_of_int(screenWidth) -. pWidth;
 let maxPosY: float = float_of_int(screenHeight) -. pHeight;
 let playerThrust: float = 80.0;
+
+let debugPlayerDisplay = (player: bodyT, env) => {
+  let posStatus =
+    "posX: "
+    ++ string_of_float(player.position.x)
+    ++ ", posY: "
+    ++ string_of_float(player.position.y);
+  let deltaStatus =
+    "deltaX: "
+    ++ string_of_float(player.velocity.x)
+    ++ " deltay: "
+    ++ string_of_float(player.velocity.y);
+  let accelerationStatus =
+    "accelerationX: "
+    ++ string_of_float(player.acceleration.x)
+    ++ "   accelerationY:  "
+    ++ string_of_float(player.acceleration.y);
+  let speed = "speed: " ++ string_of_float(speed(player.velocity));
+
+  Draw.text(~body=speed, ~pos=(150, 50), env);
+  Draw.text(~body=deltaStatus, ~pos=(150, 150), env);
+  Draw.text(~body=posStatus, ~pos=(150, 200), env);
+  Draw.text(~body=accelerationStatus, ~pos=(150, 250), env);
+};
 
 let computeVelocity =
     (velocity: velocityT, acceleration: accelerationT, time: deltaT)
@@ -111,23 +135,46 @@ let getNewVelocity =
 
 let getNewPoop = (player: bodyT, poop: bodyT, env) : bodyT => {
   let elapsedTime: float = Env.deltaTime(env);
-  let acceleration: accelerationT = {x: 0.0, y: (-80.0)};
+  let acceleration: accelerationT = {x: 0.0, y: 180.0};
   let deltaVelocity: velocityT = {
     x: acceleration.x *. elapsedTime,
     y: acceleration.y *. elapsedTime,
   };
+  Draw.text(~body="delta velocity of y", ~pos=(200, 800), env);
+  Draw.text(~body=string_of_float(deltaVelocity.y), ~pos=(400, 900), env);
+  let isDropping: bool =
+    poop.position.y < float_of_int(screenHeight) && poop.position.y > (-1.0);
+  let pressSpaceKey: bool = Env.key(Space, env) === true;
+  Draw.text(~body=string_of_bool(isDropping), ~pos=(400, 400), env);
+  let position: positionT =
+    switch ([pressSpaceKey, isDropping]) {
+    | [false, false] => {x: (-40.0), y: (-40.0)}
+    | [true, false] => {x: player.position.x, y: player.position.y}
+    | [_, true] => {
+        x: poop.position.x +. poop.velocity.x *. elapsedTime,
+        y: poop.position.y +. poop.velocity.y *. elapsedTime,
+      }
+    | _ => {x: (-40.0), y: (-40.0)}
+    };
   let velocity: velocityT =
-    switch (env) {
-    | _ when Env.key(Space, env) === true => {x: player.velocity.x, y: 0.0}
-    | _ => {
+    switch ([pressSpaceKey, isDropping]) {
+    | [false, false] => {x: 0.0, y: 0.0}
+    | [true, false] => {x: player.velocity.x, y: 0.0}
+    | [_, true] => {
         x: poop.velocity.x +. deltaVelocity.x,
         y: poop.velocity.y +. deltaVelocity.y,
       }
+    | _ => {x: 0.0, y: 0.0}
     };
+
+  Draw.text(~body=string_of_float(velocity.x), ~pos=(500, 600), env);
+  Draw.text(~body=string_of_float(velocity.y), ~pos=(600, 600), env);
+  Draw.text(~body=string_of_float(elapsedTime), ~pos=(700, 600), env);
+
   /* creates a syntax parsing error */
   /* if the right hand of the following equation is used as a param for getNewPosition */
-  let tempBody: bodyT = {velocity, position: poop.position, acceleration};
-  let position: positionT = getNewPosition(tempBody, elapsedTime);
+  /* let tempBody: bodyT = {velocity, position: poop.position, acceleration}; */
+  /* let position: positionT = getNewPosition(tempBody, elapsedTime); */
 
   {position, velocity, acceleration};
 };
@@ -147,8 +194,8 @@ let initialPlayer: bodyT = {
 };
 let initialPoop: bodyT = {
   position: {
-    x: 40.0,
-    y: 40.0,
+    x: (-40.0),
+    y: (-40.0),
   },
   velocity: {
     x: 0.0,
@@ -161,49 +208,27 @@ let initialPoop: bodyT = {
 };
 let setup = env : stateT => {
   Env.size(~width=screenWidth, ~height=screenHeight, env);
-  /* {player: initialPlayer, poop: initialPoop}; */
-  {player: initialPlayer};
+  {player: initialPlayer, poop: initialPoop};
 };
-let draw = ({player}, env) => {
+
+let draw = ({player, poop}, env) => {
   Draw.background(Utils.color(~r=19, ~g=217, ~b=229, ~a=255), env);
+  debugPlayerDisplay(poop, env);
   Draw.fill(Utils.color(~r=41, ~g=166, ~b=244, ~a=255), env);
   let posX = player.position.x;
   let posY = player.position.y;
   Draw.rectf(~pos=(posX, posY), ~width=pWidth, ~height=pHeight, env);
-  /* let poopX = poop.position.x; */
-  /* let poopY = poop.position.y; */
-  /* Draw.rectf(~pos=(poopX, poopY), ~width=poopWidth, ~height=poopHeight, env); */
+  let poopX = poop.position.x;
+  let poopY = poop.position.y;
+  Draw.rectf(~pos=(poopX, poopY), ~width=poopWidth, ~height=poopHeight, env);
+  let elapsedTime: float = Env.deltaTime(env);
   let newPlayer: bodyT = {
-    position: getNewPosition(player, Env.deltaTime(env)),
-    velocity: getNewVelocity(player, Env.deltaTime(env)),
+    position: getNewPosition(player, elapsedTime),
+    velocity: getNewVelocity(player, elapsedTime),
     acceleration: getPlayerAcceleration(env),
   };
-  /* let newPoop: bodyT = getNewPoop(player, poop, env); */
-  /* {player: newPlayer, poop}; */
-  {player: newPlayer};
+  let newPoop: bodyT = getNewPoop(player, poop, env);
+  {player: newPlayer, poop: newPoop};
 };
 
-/* run(~setup, ~draw, ()); */
-/* let debugPlayerDisplay = (player, env) => { */
-/*   let posStatus = */
-/*     "posX: " */
-/*     ++ string_of_float(player.position.x) */
-/*     ++ ", posY: " */
-/*     ++ string_of_float(player.position.y); */
-/*   let deltaStatus = */
-/*     "deltaX: " */
-/*     ++ string_of_float(player.velocity.x) */
-/*     ++ " deltay: " */
-/*     ++ string_of_float(player.velocity.y); */
-/*   let accelerationStatus = */
-/*     "accelerationX: " */
-/*     ++ string_of_float(player.acceleration.x) */
-/*     ++ "   accelerationY:  " */
-/*     ++ string_of_float(player.acceleration.y); */
-/*   let speed = "speed: " ++ string_of_float(speed(player.velocity)); */
-
-/*   Draw.text(~body=speed, ~pos=(150, 50), env); */
-/*   Draw.text(~body=deltaStatus, ~pos=(150, 150), env); */
-/*   Draw.text(~body=posStatus, ~pos=(150, 200), env); */
-/*   Draw.text(~body=accelerationStatus, ~pos=(150, 250), env); */
-/* }; */
+run(~setup, ~draw, ());
