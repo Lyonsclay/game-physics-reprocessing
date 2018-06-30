@@ -75,7 +75,7 @@ type bodyT = {
 
 type stateT = {
   player: bodyT,
-  poop: bodyT,
+  poops: list(bodyT),
 };
 
 let debugDisplay = (player: bodyT, env) => {
@@ -203,58 +203,100 @@ let getNewBirdy = (bird: bodyT, env) : bodyT => {
   {position: newPosition, velocity, acceleration};
 };
 
-let getNewPoop = (player: bodyT, poop: bodyT, env) : bodyT => {
-  let deltaTime: float = Env.deltaTime(env);
-  let isDropping: bool =
-    poop.position.y < float_of_int(screenHeight) && poop.position.y > (-1.0);
-  let pressSpaceKey: bool = Env.key(Space, env) === true;
-  let position: positionT =
-    switch ([pressSpaceKey, isDropping]) {
-    | [false, false] => {x: (-40.0), y: (-40.0)}
-    | [true, false] => {
-        x: player.position.x +. playerWidth /. 2.0,
-        y: player.position.y +. playerHeight,
-      }
-    | [_, true] => {
-        x: poop.position.x +. poop.velocity.x *. deltaTime,
-        y: poop.position.y +. poop.velocity.y *. deltaTime,
-      }
-    | _ => {x: (-40.0), y: (-40.0)}
-    };
-  let velocity: velocityT =
-    switch ([pressSpaceKey, isDropping]) {
-    | [false, false] => {x: 0.0, y: 0.0}
-    | [true, false] => {
-        x: player.velocity.x,
-        y: player.velocity.y > 0.0 ? player.velocity.y : 0.0,
-      }
-    | [_, true] => {
-        x: poop.velocity.x,
-        y: poop.velocity.y +. gravityY *. deltaTime,
-      }
-    | _ => {x: 0.0, y: 0.0}
-    };
+let addNewPoop = (player: bodyT, poops: list(bodyT), env) : list(bodyT) => {
+  let pressSpaceKey: bool = Env.key(Space, env);
+  let position: positionT = {
+    x: player.position.x +. playerWidth /. 2.0,
+    y: player.position.y +. playerHeight,
+  };
+  let velocity: velocityT = {
+    x: player.velocity.x,
+    y: player.velocity.y > 100.0 ? player.velocity.y : 100.0,
+  };
+  let newPoop = {position, velocity, acceleration: gravity};
 
-  Draw.text(~body=string_of_float(velocity.x), ~pos=(500, 600), env);
-  Draw.text(~body=string_of_float(velocity.y), ~pos=(600, 600), env);
-  Draw.text(~body=string_of_float(deltaTime), ~pos=(700, 600), env);
-
-  /* creates a syntax parsing error */
-  /* if the right hand of the following equation is used as a param for getNewPosition */
-  /* let tempBody: bodyT = {velocity, position: poop.position, acceleration}; */
-  /* let position: positionT = getNewPosition(tempBody, deltaTime); */
-  let acceleration: accelerationT =
-    switch (player) {
-    | _ when player.acceleration.y < 0.0 => gravity
-    | _ when player.acceleration.y >= 0.0 => {
-        x: 0.0,
-        y: player.acceleration.y +. gravityY,
-      }
-    | _ => gravity
-    };
-
-  {position, velocity, acceleration};
+  pressSpaceKey ? [newPoop, ...poops] : poops;
 };
+
+let filterOffScreen = (poop: bodyT) : bool =>
+  switch (poop.position) {
+  | {x, _} when x < 0.0 -. poopWidth => false
+  | {x, _} when x > float_of_int(screenWidth) +. poopWidth => false
+  | {y, _} when y > float_of_int(screenHeight) +. poopHeight => false
+  | _ => true
+  };
+let getNewPoops = (player: bodyT, poops: list(bodyT), env) : list(bodyT) => {
+  let deltaTime: float = Env.deltaTime(env);
+  let updatePoop = (poop: bodyT) : bodyT => {
+    let position: positionT = {
+      x: poop.position.x +. poop.velocity.x *. deltaTime,
+      y: poop.position.y +. poop.velocity.y *. deltaTime,
+    };
+    let velocity: velocityT = {
+      x: poop.velocity.x,
+      y: poop.velocity.y +. gravityY *. deltaTime,
+    };
+
+    {position, velocity, acceleration: gravity};
+  };
+  let poopList = List.filter(filterOffScreen, poops) |> List.map(updatePoop);
+
+  addNewPoop(player, poopList, env);
+};
+
+/* let getNewPoop = (player: bodyT, poop: bodyT, env) : bodyT => { */
+/*   let deltaTime: float = Env.deltaTime(env); */
+/*   let isDropping: bool = */
+/*     poop.position.y < float_of_int(screenHeight) && poop.position.y > (-1.0); */
+/*   let pressSpaceKey: bool = Env.key(Space, env); */
+/*   let position: positionT = */
+/*     switch ([pressSpaceKey, isDropping]) { */
+/*     | [false, false] => {x: (-40.0), y: (-40.0)} */
+/*     | [true, false] => { */
+/*         x: player.position.x +. playerWidth /. 2.0, */
+/*         y: player.position.y +. playerHeight, */
+/*       } */
+/*     | [_, true] => { */
+/*         x: poop.position.x +. poop.velocity.x *. deltaTime, */
+/*         y: poop.position.y +. poop.velocity.y *. deltaTime, */
+/*       } */
+/*     | _ => {x: (-40.0), y: (-40.0)} */
+/*     }; */
+/*   let velocity: velocityT = */
+/*     switch ([pressSpaceKey, isDropping]) { */
+/*     | [false, false] => {x: 0.0, y: 0.0} */
+/*     | [true, false] => { */
+/*         x: player.velocity.x, */
+/*         y: player.velocity.y > 100.0 ? player.velocity.y : 100.0, */
+/*       } */
+/*     | [_, true] => { */
+/*         x: poop.velocity.x, */
+/*         y: poop.velocity.y +. gravityY *. deltaTime, */
+/*       } */
+/*     | _ => {x: 0.0, y: 0.0} */
+/*     }; */
+
+/*   Draw.text(~body=string_of_float(velocity.x), ~pos=(500, 600), env); */
+/*   Draw.text(~body=string_of_float(velocity.y), ~pos=(600, 600), env); */
+/*   Draw.text(~body=string_of_float(deltaTime), ~pos=(700, 600), env); */
+
+/*   /\* creates a syntax parsing error *\/ */
+/*   /\* if the right hand of the following equation is used as a param for getNewPosition *\/ */
+/*   /\* let tempBody: bodyT = {velocity, position: poop.position, acceleration}; *\/ */
+/*   /\* let position: positionT = getNewPosition(tempBody, deltaTime); *\/ */
+/*   let acceleration: accelerationT = */
+/*     switch (player) { */
+/*     | _ when player.acceleration.y < 0.0 => gravity */
+/*     | _ when player.acceleration.y >= 0.0 => { */
+/*         x: 0.0, */
+/*         y: player.acceleration.y +. gravityY, */
+/*       } */
+/*     | _ => gravity */
+/*     }; */
+
+/*   {position, velocity, acceleration}; */
+/* }; */
+
 let initialPlayer: bodyT = {
   position: {
     x: 150.0,
@@ -285,10 +327,17 @@ let initialPoop: bodyT = {
 };
 let setup = env : stateT => {
   Env.size(~width=screenWidth, ~height=screenHeight, env);
-  {player: initialPlayer, poop: initialPoop};
+  {player: initialPlayer, poops: []};
 };
 
-let draw = ({player, poop}, env) => {
+let drawPoop = (env, poop: bodyT) => {
+  let poopX = poop.position.x;
+  let poopY = poop.position.y;
+  let center = (poopX, poopY);
+  Draw.ellipsef(~center, ~radx=poopWidth, ~rady=poopHeight, env);
+};
+
+let draw = ({player, poops}, env) => {
   Draw.background(Utils.color(~r=19, ~g=217, ~b=229, ~a=255), env);
   debugDisplay(player, env);
   Draw.fill(Utils.color(~r=41, ~g=166, ~b=244, ~a=255), env);
@@ -298,13 +347,10 @@ let draw = ({player, poop}, env) => {
   let pHeight = playerHeight;
   Draw.rectf(~pos=(posX, posY), ~width=pWidth, ~height=pHeight, env);
   Draw.fill(Utils.color(~r=241, ~g=255, ~b=254, ~a=255), env);
-  let poopX = poop.position.x;
-  let poopY = poop.position.y;
-  let center = (poopX, poopY);
-  Draw.ellipsef(~center, ~radx=poopWidth, ~rady=poopHeight, env);
-  let newBirdy = getNewBirdy(player, env);
-  let newPoop: bodyT = getNewPoop(player, poop, env);
-  {player: newBirdy, poop: newPoop};
+  List.iter(drawPoop(env), poops);
+  let newBirdy: bodyT = getNewBirdy(player, env);
+  let newPoops: list(bodyT) = getNewPoops(player, poops, env);
+  {player: newBirdy, poops: newPoops};
 };
 
 run(~setup, ~draw, ());
