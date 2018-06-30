@@ -186,54 +186,25 @@ let rec calculatePlayerAcceleration =
     | _ => {x: 0.0, y: 0.0}
     };
 
-  /* acceleration.y >= playerThrust ? */
-  /* playerThrust : acceleration.y +. playerThrust; */
   {x: acceleration.x, y: acceleration.y};
 };
-
-let calculateAcceleration = (keys: list('a)) : list(accelerationT) =>
-  List.map(accelerationMap, keys);
-/* Add all velocities in list into one resultant velocity. */
-let rec calculateVelocity = (thrustList: list(velocityT)) : velocityT =>
-  switch (thrustList) {
-  | [head, ...tail] when List.length(tail) === 0 => head
-  | [head, ...tail] when List.length(tail) > 0 => {
-      x: head.x +. calculateVelocity(tail).x,
-      y: head.y +. calculateVelocity(tail).y,
-    }
-  | _ => {x: 0.0, y: 0.0}
-  };
 
 let getNewBirdy = (bird: bodyT, env) : bodyT => {
   let deltaTime: float = Env.deltaTime(env);
   let keys: list('a) = getKeysPressed(env);
-  let birdVelocity: velocityT = bird.velocity;
-
   let thrustList: list(accelerationT) = getAccelerationList(keys);
-  /* let thrusccelerations: list(accelerationT) = getAccelerationList(keys); */
-  let accelerationList = [bird.acceleration, ...thrustList];
+  let accelerationList = [gravity, ...thrustList];
   let acceleration: accelerationT =
-    /* speed(birdVelocity) >= terminalSpeed ? */
     calculatePlayerAcceleration(accelerationList);
-  /* This is before applying acceleraton over deltaTime. */
-  let velocity: velocityT =
-    speed(bird.velocity) > terminalSpeed ?
-      bird.velocity : computeVelocity(birdVelocity, acceleration, deltaTime);
+  let velocity = getNewPlayerVelocity(bird, deltaTime);
   let birdBody = {position: bird.position, velocity, acceleration};
-  let newVelocity = getNewPlayerVelocity(birdBody, deltaTime);
   let newPosition = getNewPosition(birdBody, deltaTime);
-  {position: newPosition, velocity: newVelocity, acceleration};
-  /* bird; */
+
+  {position: newPosition, velocity, acceleration};
 };
 
 let getNewPoop = (player: bodyT, poop: bodyT, env) : bodyT => {
   let deltaTime: float = Env.deltaTime(env);
-  /* let deltaVelocity: velocityT = { */
-  /*   x: player.velocity.x +. poop.acceleration.x *. deltaTime, */
-  /*   y: player.velocity.y +. gravityY *. deltaTime, */
-  /* }; */
-  /* Draw.text(~body="delta velocity of y", ~pos=(200, 800), env); */
-  /* Draw.text(~body=string_of_float(deltaVelocity.y), ~pos=(400, 900), env); */
   let isDropping: bool =
     poop.position.y < float_of_int(screenHeight) && poop.position.y > (-1.0);
   let pressSpaceKey: bool = Env.key(Space, env) === true;
