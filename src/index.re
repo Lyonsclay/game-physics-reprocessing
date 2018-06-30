@@ -14,7 +14,7 @@ type accelerationT = {
   y: float,
 };
 /* This will be used as a maximum speed limit for all objects/bodies. */
-let terminalSpeed: float = 250.0;
+let terminalSpeed: float = 350.0;
 let gravityY: float = 150.0;
 let gravity: accelerationT = {x: 0.0, y: gravityY};
 /* birdy acceleration */
@@ -22,7 +22,7 @@ let playerThrust: float = 350.0;
 
 /* velocity to add when switching directions */
 /* compensates for slow application of natural decelerationj */
-let birdBoost: float = 10.0;
+let birdBoost: float = 40.0;
 let screenWidth: int = 1680;
 let screenHeight: int = 1000;
 let playerWidth: float = 50.0;
@@ -58,7 +58,7 @@ let velocityMap: directionT => velocityT =
 
 let accelerationMap: directionT => accelerationT =
   fun
-  | UP => {x: 0.0, y: (-1.0) *. playerThrust}
+  | UP => {x: 0.0, y: (-1.0) *. playerThrust -. 50.0}
   | DOWN => {x: 0.0, y: playerThrust}
   | LEFT => {x: (-1.0) *. playerThrust, y: 0.0}
   | RIGHT => {x: playerThrust, y: 0.0}
