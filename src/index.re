@@ -244,59 +244,6 @@ let getNewPoops = (player: bodyT, poops: list(bodyT), env) : list(bodyT) => {
   addNewPoop(player, poopList, env);
 };
 
-/* let getNewPoop = (player: bodyT, poop: bodyT, env) : bodyT => { */
-/*   let deltaTime: float = Env.deltaTime(env); */
-/*   let isDropping: bool = */
-/*     poop.position.y < float_of_int(screenHeight) && poop.position.y > (-1.0); */
-/*   let pressSpaceKey: bool = Env.key(Space, env); */
-/*   let position: positionT = */
-/*     switch ([pressSpaceKey, isDropping]) { */
-/*     | [false, false] => {x: (-40.0), y: (-40.0)} */
-/*     | [true, false] => { */
-/*         x: player.position.x +. playerWidth /. 2.0, */
-/*         y: player.position.y +. playerHeight, */
-/*       } */
-/*     | [_, true] => { */
-/*         x: poop.position.x +. poop.velocity.x *. deltaTime, */
-/*         y: poop.position.y +. poop.velocity.y *. deltaTime, */
-/*       } */
-/*     | _ => {x: (-40.0), y: (-40.0)} */
-/*     }; */
-/*   let velocity: velocityT = */
-/*     switch ([pressSpaceKey, isDropping]) { */
-/*     | [false, false] => {x: 0.0, y: 0.0} */
-/*     | [true, false] => { */
-/*         x: player.velocity.x, */
-/*         y: player.velocity.y > 100.0 ? player.velocity.y : 100.0, */
-/*       } */
-/*     | [_, true] => { */
-/*         x: poop.velocity.x, */
-/*         y: poop.velocity.y +. gravityY *. deltaTime, */
-/*       } */
-/*     | _ => {x: 0.0, y: 0.0} */
-/*     }; */
-
-/*   Draw.text(~body=string_of_float(velocity.x), ~pos=(500, 600), env); */
-/*   Draw.text(~body=string_of_float(velocity.y), ~pos=(600, 600), env); */
-/*   Draw.text(~body=string_of_float(deltaTime), ~pos=(700, 600), env); */
-
-/*   /\* creates a syntax parsing error *\/ */
-/*   /\* if the right hand of the following equation is used as a param for getNewPosition *\/ */
-/*   /\* let tempBody: bodyT = {velocity, position: poop.position, acceleration}; *\/ */
-/*   /\* let position: positionT = getNewPosition(tempBody, deltaTime); *\/ */
-/*   let acceleration: accelerationT = */
-/*     switch (player) { */
-/*     | _ when player.acceleration.y < 0.0 => gravity */
-/*     | _ when player.acceleration.y >= 0.0 => { */
-/*         x: 0.0, */
-/*         y: player.acceleration.y +. gravityY, */
-/*       } */
-/*     | _ => gravity */
-/*     }; */
-
-/*   {position, velocity, acceleration}; */
-/* }; */
-
 let initialPlayer: bodyT = {
   position: {
     x: 150.0,
@@ -311,6 +258,7 @@ let initialPlayer: bodyT = {
     y: 0.0,
   },
 };
+
 let initialPoop: bodyT = {
   position: {
     x: (-40.0),
@@ -325,6 +273,7 @@ let initialPoop: bodyT = {
     y: 0.0,
   },
 };
+
 let setup = env : stateT => {
   Env.size(~width=screenWidth, ~height=screenHeight, env);
   {player: initialPlayer, poops: []};
