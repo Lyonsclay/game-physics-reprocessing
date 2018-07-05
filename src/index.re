@@ -21,7 +21,7 @@ let gravity: accelerationT = {x: 0.0, y: gravityY};
 let playerThrust: float = 350.0;
 
 /* velocity to add when switching directions */
-/* compensates for slow application of natural decelerationj */
+/* compensates for slow application of natural deceleration */
 let birdBoost: float = 40.0;
 let screenWidth: int = 1680;
 let screenHeight: int = 1000;
@@ -48,6 +48,16 @@ let keyMap: Reprocessing_Common.KeySet.elt => directionT =
   | Nothing => NONE
   | _ => NONE;
 
+let keyStringMap: Reprocessing_Common.KeySet.elt => string =
+  fun
+  | H => "H"
+  | J => "J"
+  | K => "K"
+  | L => "L"
+  | Space => "Space"
+  | Nothing => ""
+  | _ => "";
+
 let velocityMap: directionT => velocityT =
   fun
   | UP => {x: 0.0, y: (-1.0) *. birdBoost}
@@ -58,13 +68,13 @@ let velocityMap: directionT => velocityT =
 
 let accelerationMap: directionT => accelerationT =
   fun
-  | UP => {x: 0.0, y: (-1.0) *. playerThrust -. 50.0}
+  | UP => {x: 0.0, y: (-1.0) *. playerThrust}
   | DOWN => {x: 0.0, y: playerThrust}
   | LEFT => {x: (-1.0) *. playerThrust, y: 0.0}
   | RIGHT => {x: playerThrust, y: 0.0}
   | NONE => {x: 0.0, y: 0.0};
 
-/* classical physics */
+/* Newtonian physics */
 let speed = (v: velocityT) : float => sqrt(v.x *. v.x +. v.y *. v.y);
 
 type bodyT = {
@@ -78,40 +88,47 @@ type stateT = {
   poops: list(bodyT),
 };
 
+let rec keyMapString = (keysMap: list(string)) : string =>
+  switch (keysMap) {
+  | [] => ""
+  | [head, ...tail] when List.length(tail) === 0 => head
+  | [head, ...tail] when List.length(tail) > 0 => head ++ keyMapString(tail)
+  | _ => ""
+  };
+
+let getKeyMap = env : list(string) =>
+  List.map(key => Env.key(key, env) ? key : Nothing, [H, J, K, L, Space])
+  |> List.map(keyStringMap);
+
 let debugDisplay = (player: bodyT, env) => {
-  let posStatus =
-    "posX: "
-    ++ string_of_float(player.position.x)
-    ++ ", posY: "
-    ++ string_of_float(player.position.y);
-  let deltaStatus =
-    "deltaX: "
-    ++ string_of_float(player.velocity.x)
-    ++ " deltay: "
-    ++ string_of_float(player.velocity.y);
-  let accelerationStatus =
-    "accelerationX: "
-    ++ string_of_float(player.acceleration.x)
-    ++ "   accelerationY:  "
-    ++ string_of_float(player.acceleration.y);
+  let spaceKey: bool = Env.key(Space, env);
+  let keys: string = getKeyMap(env) |> keyMapString;
+  let pressedKeys = "Pressed keys : " ++ keys;
+  let spaceStatus = "spacebar: " ++ string_of_bool(spaceKey);
+  let posXStatus = "posX: " ++ string_of_float(player.position.x);
+  let posYStatus = "posY: " ++ string_of_float(player.position.y);
+  let deltaXStatus = "deltaX: " ++ string_of_float(player.velocity.x);
+  let deltaYStatus = "deltay: " ++ string_of_float(player.velocity.y);
+  let accelerationXStatus =
+    "accelerationX: " ++ string_of_float(player.acceleration.x);
+  let accelerationYStatus =
+    "accelerationY:  " ++ string_of_float(player.acceleration.y);
   let speed = speed(player.velocity);
   let playerSpeed = "speed: " ++ string_of_float(speed);
   let excedesTerminal: bool = speed > terminalSpeed -. 10.0;
   let speedLimit =
     "Excedes speed limit : " ++ string_of_bool(excedesTerminal);
 
-  Draw.text(~body=playerSpeed, ~pos=(150, 50), env);
-  Draw.text(~body=deltaStatus, ~pos=(150, 150), env);
-  Draw.text(~body=posStatus, ~pos=(150, 200), env);
-  Draw.text(~body=accelerationStatus, ~pos=(150, 250), env);
-  Draw.text(~body=speedLimit, ~pos=(150, 350), env);
-};
-
-let computeVelocity =
-    (velocity: velocityT, acceleration: accelerationT, time: deltaT)
-    : velocityT => {
-  x: velocity.x +. acceleration.x *. time,
-  y: velocity.y +. acceleration.y *. time,
+  Draw.text(~body=pressedKeys, ~pos=(150, 50), env);
+  Draw.text(~body=playerSpeed, ~pos=(150, 100), env);
+  Draw.text(~body=deltaXStatus, ~pos=(150, 150), env);
+  Draw.text(~body=deltaYStatus, ~pos=(150, 200), env);
+  Draw.text(~body=posXStatus, ~pos=(150, 250), env);
+  Draw.text(~body=posYStatus, ~pos=(150, 300), env);
+  Draw.text(~body=accelerationXStatus, ~pos=(150, 350), env);
+  Draw.text(~body=accelerationYStatus, ~pos=(150, 400), env);
+  Draw.text(~body=speedLimit, ~pos=(150, 450), env);
+  Draw.text(~body=spaceStatus, ~pos=(150, 500), env);
 };
 
 let getNewPosition = ({velocity, position}, deltaTime: float) : positionT => {
@@ -120,14 +137,14 @@ let getNewPosition = ({velocity, position}, deltaTime: float) : positionT => {
   let newPosY: float = position.y +. velocity.y *. deltaTime;
   let newX =
     switch () {
-    | _ when newPosX < 1.0 => 0.0
-    | _ when newPosX > maxPosX -. 1.0 => maxPosX
+    | _ when newPosX < 1.0 && velocity.x <= 0.0 => 0.0
+    | _ when newPosX > maxPosX -. 1.0 && velocity.x >= 0.0 => maxPosX
     | _ => newPosX
     };
   let newY =
     switch (newPosY) {
-    | _ when newPosY < 1.0 => 0.0
-    | _ when newPosY > maxPosY -. 1.0 => maxPosY
+    | _ when newPosY < 1.0 && velocity.y <= 0.0 => 0.0
+    | _ when newPosY > maxPosY -. 1.0 && velocity.y <= 0.0 => maxPosY
     | _ => newPosY
     };
   {x: newX, y: newY};
@@ -145,7 +162,13 @@ let getNewPlayerVelocity =
   let excedesTerminal: bool = speed(velocity) > terminalSpeed -. 10.0;
   let velocityX: float =
     switch (excedesTerminal) {
+    | true when velocity.x > 0.0 && velocity.x > abs_float(velocity.y) =>
+      velocity.x -. 20.0
     | true when velocity.x > 0.0 => velocity.x -. 1.0
+    | true
+        when
+          velocity.x < 0.0 && abs_float(velocity.x) > abs_float(velocity.y) =>
+      velocity.x +. 20.0
     | true when velocity.x < 0.0 => velocity.x +. 1.0
     | false when maxLeft && velocity.x < 0.0 => 0.0
     | false when maxRight && velocity.x > 0.0 => 0.0
@@ -154,9 +177,14 @@ let getNewPlayerVelocity =
     };
   let velocityY: float =
     switch (excedesTerminal) {
+    | true when velocity.y > 0.0 && velocity.y > abs_float(velocity.x) =>
+      velocity.y -. 20.0
     | true when velocity.y > 0.0 => velocity.y -. 1.0
+    | true
+        when
+          velocity.y < 0.0 && abs_float(velocity.y) > abs_float(velocity.x) =>
+      velocity.y +. 20.0
     | true when velocity.y < 0.0 => velocity.y +. 1.0
-    | false when maxLeft && velocity.x < 0.0 => 0.0
     | false when maxUp && velocity.y < 0.0 => 0.0
     | false when maxDown && velocity.y > 0.0 => 0.0
     | false => velocity.y +. acceleration.y *. deltaTime
@@ -252,21 +280,6 @@ let initialPlayer: bodyT = {
   velocity: {
     x: 0.0,
     y: 20.0,
-  },
-  acceleration: {
-    x: 0.0,
-    y: 0.0,
-  },
-};
-
-let initialPoop: bodyT = {
-  position: {
-    x: (-40.0),
-    y: (-40.0),
-  },
-  velocity: {
-    x: 0.0,
-    y: 0.0,
   },
   acceleration: {
     x: 0.0,
