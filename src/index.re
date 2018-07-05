@@ -195,7 +195,7 @@ let getNewPlayerVelocity =
 };
 
 let getKeysPressed = env : list(directionT) =>
-  List.map(key => Env.key(key, env) ? key : Nothing, [H, J, K, L])
+  List.map(key => Env.key(key, env) ? key : Nothing, [H, J, K, L, Space])
   |> List.map(keyMap);
 
 let getAccelerationList = (keys: list(directionT)) : list(accelerationT) =>
@@ -231,8 +231,7 @@ let getNewBirdy = (bird: bodyT, env) : bodyT => {
   {position: newPosition, velocity, acceleration};
 };
 
-let addNewPoop = (player: bodyT, poops: list(bodyT), env) : list(bodyT) => {
-  let pressSpaceKey: bool = Env.key(Space, env);
+let addNewPoop = (player: bodyT) : bodyT => {
   let position: positionT = {
     x: player.position.x +. playerWidth /. 2.0,
     y: player.position.y +. playerHeight,
@@ -241,9 +240,8 @@ let addNewPoop = (player: bodyT, poops: list(bodyT), env) : list(bodyT) => {
     x: player.velocity.x,
     y: player.velocity.y > 100.0 ? player.velocity.y : 100.0,
   };
-  let newPoop = {position, velocity, acceleration: gravity};
 
-  pressSpaceKey ? [newPoop, ...poops] : poops;
+  {position, velocity, acceleration: gravity};
 };
 
 let filterOffScreen = (poop: bodyT) : bool =>
@@ -253,8 +251,19 @@ let filterOffScreen = (poop: bodyT) : bool =>
   | {y, _} when y > float_of_int(screenHeight) +. poopHeight => false
   | _ => true
   };
+
+let canAddPoop = (poops: list(bodyT), player: bodyT) : bool =>
+  switch (poops) {
+  | [] => true
+  | _ when List.length(poops) > 10 => false
+  | [head, ..._] when head.position.y -. player.position.y > 60.0 => true
+  | _ => false
+  };
+
 let getNewPoops = (player: bodyT, poops: list(bodyT), env) : list(bodyT) => {
   let deltaTime: float = Env.deltaTime(env);
+  let pressedSpaceKey: bool = Env.key(Space, env);
+  let addPoop: bool = pressedSpaceKey && canAddPoop(poops, player);
   let updatePoop = (poop: bodyT) : bodyT => {
     let position: positionT = {
       x: poop.position.x +. poop.velocity.x *. deltaTime,
@@ -269,7 +278,7 @@ let getNewPoops = (player: bodyT, poops: list(bodyT), env) : list(bodyT) => {
   };
   let poopList = List.filter(filterOffScreen, poops) |> List.map(updatePoop);
 
-  addNewPoop(player, poopList, env);
+  addPoop ? [addNewPoop(player), ...poopList] : poopList;
 };
 
 let initialPlayer: bodyT = {
