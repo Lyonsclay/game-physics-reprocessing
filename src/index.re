@@ -1,18 +1,10 @@
 open Reprocessing;
+open Types;
+include Picnic;
+include Picnicker;
 
-type positionT = {
-  x: float,
-  y: float,
-};
-type deltaT = float;
-type velocityT = {
-  x: float,
-  y: float,
-};
-type accelerationT = {
-  x: float,
-  y: float,
-};
+/* Newtonian physics */
+let speed = (v: velocityT) : float => sqrt(v.x *. v.x +. v.y *. v.y);
 /* This will be used as a maximum speed limit for all objects/bodies. */
 let terminalSpeed: float = 350.0;
 let gravityY: float = 150.0;
@@ -31,14 +23,6 @@ let poopWidth: float = 5.0;
 let poopHeight: float = 7.0;
 let maxPosX: float = float_of_int(screenWidth) -. playerWidth;
 let maxPosY: float = float_of_int(screenHeight) -. playerHeight;
-
-type directionT =
-  | UP
-  | DOWN
-  | LEFT
-  | RIGHT
-  | NONE;
-
 let keyMap: Reprocessing_Common.KeySet.elt => directionT =
   fun
   | H => LEFT
@@ -74,18 +58,11 @@ let accelerationMap: directionT => accelerationT =
   | RIGHT => {x: playerThrust, y: 0.0}
   | NONE => {x: 0.0, y: 0.0};
 
-/* Newtonian physics */
-let speed = (v: velocityT) : float => sqrt(v.x *. v.x +. v.y *. v.y);
-
-type bodyT = {
-  position: positionT,
-  velocity: velocityT,
-  acceleration: accelerationT,
-};
-
 type stateT = {
-  player: bodyT,
+  birdy: bodyT,
   poops: list(bodyT),
+  picnic: picnicT,
+  picnicker: picnickerT,
 };
 
 let rec keyMapString = (keysMap: list(string)) : string =>
@@ -101,20 +78,25 @@ let getKeyMap = env : list(string) =>
   |> List.map(keyStringMap);
 
 let debugDisplay = (player: bodyT, env) => {
+  /* [%bs.raw {| console.log('here is some javascript for you') |}]; */
   let spaceKey: bool = Env.key(Space, env);
   let keys: string = getKeyMap(env) |> keyMapString;
   let pressedKeys = "Pressed keys : " ++ keys;
   let spaceStatus = "spacebar: " ++ string_of_bool(spaceKey);
-  let posXStatus = "posX: " ++ string_of_float(player.position.x);
-  let posYStatus = "posY: " ++ string_of_float(player.position.y);
-  let deltaXStatus = "deltaX: " ++ string_of_float(player.velocity.x);
-  let deltaYStatus = "deltay: " ++ string_of_float(player.velocity.y);
+  let posXStatus =
+    "posX: " ++ string_of_int(int_of_float(player.position.x));
+  let posYStatus =
+    "posY: " ++ string_of_int(int_of_float(player.position.y));
+  let deltaXStatus =
+    "deltaX: " ++ string_of_int(int_of_float(player.velocity.x));
+  let deltaYStatus =
+    "deltay: " ++ string_of_int(int_of_float(player.velocity.y));
   let accelerationXStatus =
-    "accelerationX: " ++ string_of_float(player.acceleration.x);
+    "accelerationX: " ++ string_of_int(int_of_float(player.acceleration.x));
   let accelerationYStatus =
-    "accelerationY:  " ++ string_of_float(player.acceleration.y);
+    "accelerationY:  " ++ string_of_int(int_of_float(player.acceleration.y));
   let speed = speed(player.velocity);
-  let playerSpeed = "speed: " ++ string_of_float(speed);
+  let playerSpeed = "speed: " ++ string_of_int(int_of_float(speed));
   let excedesTerminal: bool = speed > terminalSpeed -. 10.0;
   let speedLimit =
     "Excedes speed limit : " ++ string_of_bool(excedesTerminal);
@@ -281,7 +263,7 @@ let getNewPoops = (player: bodyT, poops: list(bodyT), env) : list(bodyT) => {
   addPoop ? [addNewPoop(player), ...poopList] : poopList;
 };
 
-let initialPlayer: bodyT = {
+let initialBirdy: bodyT = {
   position: {
     x: 150.0,
     y: 50.0,
@@ -296,9 +278,38 @@ let initialPlayer: bodyT = {
   },
 };
 
+let picnic: picnicT = {
+  position: {
+    x: float_of_int(screenWidth) /. 2.0,
+    y: float_of_int(screenHeight),
+  },
+  blanket: true,
+  basket: true,
+  watermelon: true,
+  cherries: true,
+};
+
+let picnicker: picnickerT = {
+  body: {
+    position: {
+      x: float_of_int(screenWidth) -. 100.0,
+      y: 0.0,
+    },
+    velocity: {
+      x: (-10.0),
+      y: 0.0,
+    },
+    acceleration: {
+      x: 0.0,
+      y: 0.0,
+    },
+  },
+  motivation: PICNIC,
+};
+
 let setup = env : stateT => {
   Env.size(~width=screenWidth, ~height=screenHeight, env);
-  {player: initialPlayer, poops: []};
+  {birdy: initialBirdy, poops: [], picnic, picnicker};
 };
 
 let drawPoop = (env, poop: bodyT) => {
@@ -308,20 +319,23 @@ let drawPoop = (env, poop: bodyT) => {
   Draw.ellipsef(~center, ~radx=poopWidth, ~rady=poopHeight, env);
 };
 
-let draw = ({player, poops}, env) => {
+let draw = ({birdy, poops}, env) => {
   Draw.background(Utils.color(~r=19, ~g=217, ~b=229, ~a=255), env);
-  debugDisplay(player, env);
+  debugDisplay(birdy, env);
   Draw.fill(Utils.color(~r=41, ~g=166, ~b=244, ~a=255), env);
-  let posX = player.position.x;
-  let posY = player.position.y;
+  let posX = birdy.position.x;
+  let posY = birdy.position.y;
   let pWidth = playerWidth;
   let pHeight = playerHeight;
   Draw.rectf(~pos=(posX, posY), ~width=pWidth, ~height=pHeight, env);
   Draw.fill(Utils.color(~r=241, ~g=255, ~b=254, ~a=255), env);
   List.iter(drawPoop(env), poops);
-  let newBirdy: bodyT = getNewBirdy(player, env);
-  let newPoops: list(bodyT) = getNewPoops(player, poops, env);
-  {player: newBirdy, poops: newPoops};
+  drawPicnic(picnic, env);
+  drawPicnicker(picnicker, picnic, birdy, env);
+
+  let newBirdy: bodyT = getNewBirdy(birdy, env);
+  let newPoops: list(bodyT) = getNewPoops(birdy, poops, env);
+  {birdy: newBirdy, poops: newPoops, picnic, picnicker};
 };
 
 run(~setup, ~draw, ());
