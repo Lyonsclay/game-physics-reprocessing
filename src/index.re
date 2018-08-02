@@ -361,7 +361,8 @@ let updatePicnicker =
     | LEAVE when posX > picnicX => 30.0
     | LEAVE when posX < picnicX => (-30.0)
     | FORAGE => Random.bool() ? (-10.0) : 10.0
-    | RAGE => Random.bool() ? (-30.0) : 30.0
+    | RAGE when body.velocity.x > 0.0 => Random.int(100) > 97 ? (-31.0) : 50.0
+    | RAGE when body.velocity.x < 0.0 => Random.int(100) > 97 ? 31.0 : (-50.0)
     | HUNT when posX > bird.position.x => (-5.0)
     | HUNT when posX < bird.position.x => 5.0
     | _ => 0.0
@@ -387,9 +388,11 @@ let updatePicnicker =
   let newMotivation: motivationT =
     switch (hitsCount) {
     | _ when headShot => RAGE
-    | _ when hitsCount > 2 => RAGE
+    | _ when hitsCount > 4 => RAGE
     | 0 => motivation
     | 2 => LEAVE
+    | 3 => LEAVE
+    | 4 => LEAVE
     | _ => motivation
     };
   {
