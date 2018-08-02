@@ -1,7 +1,8 @@
 open Reprocessing;
 open Types;
-include Picnic;
-include Picnicker;
+/* include Picnic; */
+/* open Picnic; */
+/* include Beebo; */
 
 /* Newtonian physics */
 let speed = (v: velocityT) : float => sqrt(v.x *. v.x +. v.y *. v.y);
@@ -57,6 +58,14 @@ let accelerationMap: directionT => accelerationT =
   | LEFT => {x: (-1.0) *. playerThrust, y: 0.0}
   | RIGHT => {x: playerThrust, y: 0.0}
   | NONE => {x: 0.0, y: 0.0};
+
+let motivationMap: motivationT => string =
+  fun
+  | PICNIC => "Picnic"
+  | LEAVE => "Leave"
+  | FORAGE => "Forage"
+  | HUNT => "Hunt"
+  | RAGE => "Rage";
 
 type stateT = {
   birdy: bodyT,
@@ -237,8 +246,8 @@ let filterOffScreen = (poop: bodyT) : bool =>
 let canAddPoop = (poops: list(bodyT), player: bodyT) : bool =>
   switch (poops) {
   | [] => true
-  | _ when List.length(poops) > 10 => false
-  | [head, ..._] when head.position.y -. player.position.y > 60.0 => true
+  | _ when List.length(poops) > 7 => false
+  | [head, ..._] when head.position.y -. player.position.y > 80.0 => true
   | _ => false
   };
 
@@ -262,6 +271,158 @@ let getNewPoops = (player: bodyT, poops: list(bodyT), env) : list(bodyT) => {
 
   addPoop ? [addNewPoop(player), ...poopList] : poopList;
 };
+
+let drawPoop = (env, poop: bodyT) => {
+  let poopX = poop.position.x;
+  let poopY = poop.position.y;
+  let center = (poopX, poopY);
+  Draw.ellipsef(~center, ~radx=poopWidth, ~rady=poopHeight, env);
+};
+
+let cherryMap =
+  List.map(
+    l => (Random.float(l), Random.float(l)),
+    [30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0],
+  );
+
+let drawPicnic = (picnic: picnicT, env) => {
+  let posX = picnic.position.x;
+  let posY = picnic.position.y;
+  /* print_int(List.nth(cherryMap, 5)); */
+  if (picnic.blanket) {
+    Draw.fill(Utils.color(~r=241, ~g=215, ~b=234, ~a=205), env);
+    Draw.rectf(~pos=(posX, posY), ~width=190.0, ~height=5.0, env);
+  };
+  if (picnic.basket) {
+    Draw.fill(Utils.color(~r=121, ~g=25, ~b=24, ~a=255), env);
+    Draw.rectf(
+      ~pos=(posX +. 80.0, posY -. 25.0),
+      ~width=35.0,
+      ~height=25.0,
+      env,
+    );
+  };
+  if (picnic.watermelon) {
+    Draw.fill(Utils.color(~r=21, ~g=205, ~b=24, ~a=255), env);
+    Draw.ellipsef(
+      ~center=(posX +. 20.0, posY -. 20.0),
+      ~radx=40.0,
+      ~rady=20.0,
+      env,
+    );
+  };
+  if (picnic.cherries) {
+    Draw.fill(Utils.color(~r=210, ~g=5, ~b=24, ~a=255), env);
+    List.iter(
+      ((x, y)) =>
+        Draw.ellipsef(
+          ~center=(posX +. 80.0 +. x, posY +. y -. 40.0),
+          ~radx=5.0,
+          ~rady=5.0,
+          env,
+        ),
+      cherryMap,
+    );
+  };
+};
+
+let detectHit = (player: bodyT, poop: bodyT, env) : bool => {
+  let {x: poopX, y: poopY}: positionT = poop.position;
+  let {x: playerX, y: playerY}: positionT = player.position;
+  let poopPosX = "poopX : " ++ string_of_float(poopX);
+  let poopPosY = "poopY : " ++ string_of_float(poopY);
+  let playerPosX = "playerX : " ++ string_of_float(playerX);
+  let playerPosY = "playerY : " ++ string_of_float(playerY);
+
+  Draw.text(~body=poopPosX, ~pos=(550, 75), env);
+  Draw.text(~body=poopPosY, ~pos=(550, 125), env);
+  Draw.text(~body=playerPosX, ~pos=(550, 175), env);
+  Draw.text(~body=playerPosY, ~pos=(550, 225), env);
+
+  abs_float(poopX -. playerX) < 10.01 && abs_float(poopY -. playerY) < 10.01;
+};
+let updatePicnicker =
+    (
+      {body, motivation}: picnickerT,
+      picnic: picnicT,
+      bird: bodyT,
+      poops: list(bodyT),
+      env,
+    )
+    : picnickerT => {
+  let posX = body.position.x;
+  let posY = body.position.y;
+  let picnicX = picnic.position.x;
+  let deltaTime = Env.deltaTime(env);
+  let newVelocityX: float =
+    switch (motivation) {
+    | PICNIC when posX > picnicX => (-30.0)
+    | PICNIC when posX < picnicX => 30.0
+    | LEAVE when posX > picnicX => 30.0
+    | LEAVE when posX < picnicX => (-30.0)
+    | FORAGE => Random.bool() ? (-10.0) : 10.0
+    | RAGE => Random.bool() ? (-30.0) : 30.0
+    | HUNT when posX > bird.position.x => (-5.0)
+    | HUNT when posX < bird.position.x => 5.0
+    | _ => 0.0
+    };
+
+  let hits: list(bodyT) =
+    List.filter(poop => detectHit(body, poop, env), poops);
+  let hitsCount: int = List.length(hits);
+  let headShot =
+    List.exists(
+      (poop: bodyT) => (poop.position.y > 0.75 *. poopHeight: bool),
+      hits: list(bodyT),
+    );
+
+  /* let message: string = "hits"; */
+  for (i in 0 to List.length(hits) - 1) {
+    let posX = "posX : " ++ string_of_float(List.nth(hits, i).position.x);
+    let posY = "posY : " ++ string_of_float(List.nth(hits, i).position.y);
+
+    Draw.text(~body=posX, ~pos=(250, 25 * i), env);
+    Draw.text(~body=posY, ~pos=(250, 25 * i + 50), env);
+  };
+  let newMotivation: motivationT =
+    switch (hitsCount) {
+    | _ when headShot => RAGE
+    | _ when hitsCount > 2 => RAGE
+    | 0 => motivation
+    | 2 => LEAVE
+    | _ => motivation
+    };
+  {
+    body: {
+      velocity: {
+        x: newVelocityX,
+        y: 0.0,
+      },
+      position: {
+        x: posX +. newVelocityX *. deltaTime,
+        y: posY,
+      },
+      acceleration: {
+        x: 0.0,
+        y: 0.0,
+      },
+    },
+    motivation: newMotivation,
+  };
+};
+
+let drawPicnicker = ({body}: picnickerT, env) => {
+  let posX = body.position.x;
+  let posY = body.position.y;
+  let pWidth = 25.0;
+  let pHeight = 100.0;
+  Draw.fill(Utils.color(~r=141, ~g=96, ~b=214, ~a=25), env);
+  Draw.rectf(~pos=(posX, posY), ~width=pWidth, ~height=pHeight, env);
+};
+
+/*  //////////////////////////// */
+/*  /// Initiate New Game ///// */
+/* /////////////////////////// */
 
 let initialBirdy: bodyT = {
   position: {
@@ -291,10 +452,12 @@ let picnic: picnicT = {
 
 let picnicker: picnickerT = {
   body: {
-    position: {
-      x: float_of_int(screenWidth) -. 100.0,
-      y: 0.0,
-    },
+    position:
+      /* x: 800.0, */
+      {
+        x: float_of_int(screenWidth) -. 300.0,
+        y: float_of_int(screenHeight) -. 100.0,
+      },
     velocity: {
       x: (-10.0),
       y: 0.0,
@@ -312,30 +475,26 @@ let setup = env : stateT => {
   {birdy: initialBirdy, poops: [], picnic, picnicker};
 };
 
-let drawPoop = (env, poop: bodyT) => {
-  let poopX = poop.position.x;
-  let poopY = poop.position.y;
-  let center = (poopX, poopY);
-  Draw.ellipsef(~center, ~radx=poopWidth, ~rady=poopHeight, env);
-};
-
-let draw = ({birdy, poops}, env) => {
+let draw = ({birdy, poops, picnic, picnicker}, env) => {
   Draw.background(Utils.color(~r=19, ~g=217, ~b=229, ~a=255), env);
-  debugDisplay(birdy, env);
+  /* debugDisplay(birdy, env); */
+  debugDisplay(picnicker.body, env);
   Draw.fill(Utils.color(~r=41, ~g=166, ~b=244, ~a=255), env);
   let posX = birdy.position.x;
   let posY = birdy.position.y;
   let pWidth = playerWidth;
   let pHeight = playerHeight;
   Draw.rectf(~pos=(posX, posY), ~width=pWidth, ~height=pHeight, env);
+  drawPicnicker(picnicker, env);
+  drawPicnic(picnic, env);
   Draw.fill(Utils.color(~r=241, ~g=255, ~b=254, ~a=255), env);
   List.iter(drawPoop(env), poops);
-  drawPicnic(picnic, env);
-  drawPicnicker(picnicker, picnic, birdy, env);
 
   let newBirdy: bodyT = getNewBirdy(birdy, env);
   let newPoops: list(bodyT) = getNewPoops(birdy, poops, env);
-  {birdy: newBirdy, poops: newPoops, picnic, picnicker};
+  let newPicnicker: picnickerT =
+    updatePicnicker(picnicker, picnic, birdy, newPoops, env);
+  {birdy: newBirdy, poops: newPoops, picnic, picnicker: newPicnicker};
 };
 
 run(~setup, ~draw, ());
