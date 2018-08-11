@@ -13,7 +13,7 @@ let gravity: accelerationT = {x: 0.0, y: gravityY};
 /* birdy acceleration */
 let playerThrust: float = 350.0;
 
-/* velocity to add when switching directions */
+/* birdBoost - velocity to add when switching directions */
 /* compensates for slow application of natural deceleration */
 let birdBoost: float = 40.0;
 let screenWidth: int = 1680;
@@ -122,7 +122,13 @@ let debugDisplay = (player: bodyT, env) => {
   Draw.text(~body=spaceStatus, ~pos=(150, 500), env);
 };
 
-let getNewPosition = ({velocity, position}, deltaTime: float) : positionT => {
+/*  ////////////////////////////////////////  */
+/*  \\\\ Birdy functions \ calculations \\\\  */
+/*  ////////////////////////////////////////  */
+
+let getNewBirdyPosition =
+    ({velocity, position}, deltaTime: float)
+    : positionT => {
   /* let margin: float = 0.01; */
   let newPosX: float = position.x +. velocity.x *. deltaTime;
   let newPosY: float = position.y +. velocity.y *. deltaTime;
@@ -141,7 +147,7 @@ let getNewPosition = ({velocity, position}, deltaTime: float) : positionT => {
   {x: newX, y: newY};
 };
 
-let getNewPlayerVelocity =
+let getNewBirdyVelocity =
     ({velocity, position, acceleration}, deltaTime: float)
     : velocityT => {
   let maxLeft: bool = position.x < 1.0;
@@ -192,15 +198,15 @@ let getKeysPressed = env : list(directionT) =>
 let getAccelerationList = (keys: list(directionT)) : list(accelerationT) =>
   List.map(accelerationMap, keys);
 
-let rec calculatePlayerAcceleration =
+let rec calculateBirdyAcceleration =
         (accelerationList: list(accelerationT))
         : accelerationT => {
   let acceleration: accelerationT =
     switch (accelerationList) {
     | [head, ...tail] when List.length(tail) === 0 => head
     | [head, ...tail] when List.length(tail) > 0 => {
-        x: head.x +. calculatePlayerAcceleration(tail).x,
-        y: head.y +. calculatePlayerAcceleration(tail).y,
+        x: head.x +. calculateBirdyAcceleration(tail).x,
+        y: head.y +. calculateBirdyAcceleration(tail).y,
       }
     | _ => {x: 0.0, y: 0.0}
     };
@@ -214,13 +220,17 @@ let getNewBirdy = (bird: bodyT, env) : bodyT => {
   let thrustList: list(accelerationT) = getAccelerationList(keys);
   let accelerationList = [gravity, ...thrustList];
   let acceleration: accelerationT =
-    calculatePlayerAcceleration(accelerationList);
-  let velocity = getNewPlayerVelocity(bird, deltaTime);
+    calculateBirdyAcceleration(accelerationList);
+  let velocity = getNewBirdyVelocity(bird, deltaTime);
   let birdBody = {position: bird.position, velocity, acceleration};
-  let newPosition = getNewPosition(birdBody, deltaTime);
+  let newPosition = getNewBirdyPosition(birdBody, deltaTime);
 
   {position: newPosition, velocity, acceleration};
 };
+
+/*  ///////////////////////////////////////  */
+/*  \\\\ Poop functions \ calculations \\\\  */
+/*  ///////////////////////////////////////  */
 
 let addNewPoop = (player: bodyT) : bodyT => {
   let position: positionT = {
@@ -279,6 +289,10 @@ let drawPoop = (env, poop: bodyT) => {
   Draw.ellipsef(~center, ~radx=poopWidth, ~rady=poopHeight, env);
 };
 
+/*  /////////////////////////////////////////  */
+/*  \\\\ Picnic functions \ calculations \\\\  */
+/*  /////////////////////////////////////////  */
+
 let cherryMap =
   List.map(
     l => (Random.float(l), Random.float(l)),
@@ -325,6 +339,10 @@ let drawPicnic = (picnic: picnicT, env) => {
     );
   };
 };
+
+/*  ////////////////////////////////////////////  */
+/*  \\\\ Picnicker functions \ calculations \\\\  */
+/*  ////////////////////////////////////////////  */
 
 let detectHit = (player: bodyT, poop: bodyT, env) : bool => {
   let {x: poopX, y: poopY}: positionT = poop.position;
@@ -423,9 +441,9 @@ let drawPicnicker = ({body}: picnickerT, env) => {
   Draw.rectf(~pos=(posX, posY), ~width=pWidth, ~height=pHeight, env);
 };
 
-/*  //////////////////////////// */
-/*  /// Initiate New Game ///// */
-/* /////////////////////////// */
+/*    /////////////////////////////  */
+/*   ////  Initiate New Game  ////   */
+/*  /////////////////////////////    */
 
 let initialBirdy: bodyT = {
   position: {
@@ -481,8 +499,10 @@ let setup = env : stateT => {
 let draw = ({birdy, poops, picnic, picnicker}, env) => {
   Draw.background(Utils.color(~r=19, ~g=217, ~b=229, ~a=255), env);
   /* debugDisplay(birdy, env); */
+  /* logging data */
   debugDisplay(picnicker.body, env);
   Draw.fill(Utils.color(~r=41, ~g=166, ~b=244, ~a=255), env);
+
   let posX = birdy.position.x;
   let posY = birdy.position.y;
   let pWidth = playerWidth;
