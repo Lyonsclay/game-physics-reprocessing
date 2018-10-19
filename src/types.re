@@ -43,6 +43,19 @@ type motivationT =
   | HUNT
   | RAGE;
 
+type bodyZonesT =
+  | HEAD
+  | CHEST
+  | BICEPS
+  | FOREARMS
+  | HANDS
+  | BELLY
+  | HIPS
+  | THIGHS
+  | CALVES
+  | FEET;
+
+/* type impactT = list */
 type picnickerT = {
   body: bodyT,
   motivation: motivationT,
