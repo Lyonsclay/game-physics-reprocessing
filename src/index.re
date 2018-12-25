@@ -12,6 +12,8 @@ let gravityY: float = 150.0;
 let gravity: accelerationT = {x: 0.0, y: gravityY};
 /* birdy acceleration */
 let playerThrust: float = 350.0;
+/* air friction */
+let playerDrag: accelerationT = {x: 20.0, y: 0.0};
 
 /* birdBoost - velocity to add when switching directions */
 /* compensates for slow application of natural deceleration */
@@ -293,52 +295,52 @@ let drawPoop = (env, poop: bodyT) => {
 /*  \\\\ Picnic functions \ calculations \\\\  */
 /*  /////////////////////////////////////////  */
 
-let cherryMap =
-  List.map(
-    l => (Random.float(l), Random.float(l)),
-    [30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0],
-  );
+/* let cherryMap = */
+/*   List.map( */
+/*     l => (Random.float(l), Random.float(l)), */
+/*     [30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0], */
+/*   ); */
 
-let drawPicnic = (picnic: picnicT, env) => {
-  let posX = picnic.position.x;
-  let posY = picnic.position.y;
-  /* print_int(List.nth(cherryMap, 5)); */
-  if (picnic.blanket) {
-    Draw.fill(Utils.color(~r=241, ~g=215, ~b=234, ~a=205), env);
-    Draw.rectf(~pos=(posX, posY), ~width=190.0, ~height=5.0, env);
-  };
-  if (picnic.basket) {
-    Draw.fill(Utils.color(~r=121, ~g=25, ~b=24, ~a=255), env);
-    Draw.rectf(
-      ~pos=(posX +. 80.0, posY -. 25.0),
-      ~width=35.0,
-      ~height=25.0,
-      env,
-    );
-  };
-  if (picnic.watermelon) {
-    Draw.fill(Utils.color(~r=21, ~g=205, ~b=24, ~a=255), env);
-    Draw.ellipsef(
-      ~center=(posX +. 20.0, posY -. 20.0),
-      ~radx=40.0,
-      ~rady=20.0,
-      env,
-    );
-  };
-  if (picnic.cherries) {
-    Draw.fill(Utils.color(~r=210, ~g=5, ~b=24, ~a=255), env);
-    List.iter(
-      ((x, y)) =>
-        Draw.ellipsef(
-          ~center=(posX +. 80.0 +. x, posY +. y -. 40.0),
-          ~radx=5.0,
-          ~rady=5.0,
-          env,
-        ),
-      cherryMap,
-    );
-  };
-};
+/* let drawPicnic = (picnic: picnicT, env) => { */
+/*   let posX = picnic.position.x; */
+/*   let posY = picnic.position.y; */
+/*   /\* print_int(List.nth(cherryMap, 5)); *\/ */
+/*   if (picnic.blanket) { */
+/*     Draw.fill(Utils.color(~r=241, ~g=215, ~b=234, ~a=205), env); */
+/*     Draw.rectf(~pos=(posX, posY), ~width=190.0, ~height=5.0, env); */
+/*   }; */
+/*   if (picnic.basket) { */
+/*     Draw.fill(Utils.color(~r=121, ~g=25, ~b=24, ~a=255), env); */
+/*     Draw.rectf( */
+/*       ~pos=(posX +. 80.0, posY -. 25.0), */
+/*       ~width=35.0, */
+/*       ~height=25.0, */
+/*       env, */
+/*     ); */
+/*   }; */
+/*   if (picnic.watermelon) { */
+/*     Draw.fill(Utils.color(~r=21, ~g=205, ~b=24, ~a=255), env); */
+/*     Draw.ellipsef( */
+/*       ~center=(posX +. 20.0, posY -. 20.0), */
+/*       ~radx=40.0, */
+/*       ~rady=20.0, */
+/*       env, */
+/*     ); */
+/*   }; */
+/*   if (picnic.cherries) { */
+/*     Draw.fill(Utils.color(~r=210, ~g=5, ~b=24, ~a=255), env); */
+/*     List.iter( */
+/*       ((x, y)) => */
+/*         Draw.ellipsef( */
+/*           ~center=(posX +. 80.0 +. x, posY +. y -. 40.0), */
+/*           ~radx=5.0, */
+/*           ~rady=5.0, */
+/*           env, */
+/*         ), */
+/*       cherryMap, */
+/*     ); */
+/*   }; */
+/* }; */
 
 /*  ////////////////////////////////////////////  */
 /*  \\\\ Picnicker functions \ calculations \\\\  */
@@ -509,7 +511,7 @@ let draw = ({birdy, poops, picnic, picnicker}, env) => {
   let pHeight = playerHeight;
   Draw.rectf(~pos=(posX, posY), ~width=pWidth, ~height=pHeight, env);
   drawPicnicker(picnicker, env);
-  drawPicnic(picnic, env);
+  Picnic.drawPicnic(picnic, env);
   Draw.fill(Utils.color(~r=241, ~g=255, ~b=254, ~a=255), env);
   List.iter(drawPoop(env), poops);
 

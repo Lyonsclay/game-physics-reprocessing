@@ -16,6 +16,11 @@ This is the current project;
 
 First you will need to install the [reason-cli](https://github.com/reasonml/reason-cli)
 
+Also, here is an in depth guide to setting up an Ocaml development environment
+including integrating with different editors including vim.
+
+```opam install ocp-indent```
+
 ## How to
 ```
 git clone git@github.com:Lyonsclay/game-physics-reprocessing.git
