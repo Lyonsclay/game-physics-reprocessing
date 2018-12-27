@@ -50,6 +50,12 @@ pend@~1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/pend/-/pend-1.2.0.tgz#7a57eb550a6783f9115331fcf4663d5c8e007a50"
 
+reprocessing@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/reprocessing/-/reprocessing-0.2.0.tgz#3a7533dc4cb5aedb5f54cefd78fa336f7e104729"
+  dependencies:
+    Reasongl "github:bsansouci/reasongl"
+
 sdl2@bsansouci/SDL-mirror#fast:
   version "2.0.5"
   resolved "https://codeload.github.com/bsansouci/SDL-mirror/tar.gz/db0756eec3c5979b8291d739ebac9e8747ccbac2"
