@@ -26,7 +26,8 @@ let getNewBirdyPosition = ({velocity, position}, deltaTime: float): positionT =>
 };
 
 let getNewBirdyVelocity =
-    ({velocity, position, acceleration}, deltaTime: float): velocityT => {
+    ({velocity, position, acceleration}, deltaTime: float, keys: list('a))
+    : velocityT => {
   let maxLeft: bool = position.x < 1.0;
   let maxRight: bool =
     position.x > float_of_int(screenWidth) -. playerWidth -. 1.0;
@@ -46,6 +47,8 @@ let getNewBirdyVelocity =
     | true when velocity.x < 0.0 => velocity.x +. 1.0
     | false when maxLeft && velocity.x < 0.0 => 0.0
     | false when maxRight && velocity.x > 0.0 => 0.0
+    | false when List.exists(key => key == LEFT, keys) => velocity.x -. 2.0
+    | false when List.exists(key => key == RIGHT, keys) => velocity.x +. 2.0
     | false when velocity.x > 0.0 && position.y > 920.0 => velocity.x -. 2.0
     | false when velocity.x < 0.0 && position.y > 920.0 => velocity.x +. 2.0
     | false => velocity.x +. acceleration.x *. deltaTime

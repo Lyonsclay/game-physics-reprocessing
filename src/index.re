@@ -34,7 +34,7 @@ let getNewBirdy = (bird: bodyT, env): bodyT => {
   let accelerationList = [gravity, ...thrustList];
   let acceleration: accelerationT =
     calculateBirdyAcceleration(accelerationList);
-  let velocity = getNewBirdyVelocity(bird, deltaTime);
+  let velocity = getNewBirdyVelocity(bird, deltaTime, keys);
   let birdBody = {position: bird.position, velocity, acceleration};
   let newPosition = getNewBirdyPosition(birdBody, deltaTime);
 
