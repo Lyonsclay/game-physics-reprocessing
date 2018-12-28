@@ -60,3 +60,11 @@ type picnickerT = {
   body: bodyT,
   motivation: motivationT,
 };
+
+type stateT = {
+  birdy: bodyT,
+  poops: list(bodyT),
+  picnic: picnicT,
+  picnicker: picnickerT,
+};
+
