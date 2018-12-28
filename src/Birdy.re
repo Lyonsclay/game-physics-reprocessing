@@ -2,9 +2,9 @@
 open Types;
 open Game;
 
-/*  ////////////////////////////////////////  */
-/*  \\\\ Birdy functions \ calculations \\\\  */
-/*  ////////////////////////////////////////  */
+/*  |//////////////////////////////////////|  */
+/*  |//  Birdy functions - calculations  //|  */
+/*  |//////////////////////////////////////|  */
 
 let getNewBirdyPosition = ({velocity, position}, deltaTime: float): positionT => {
   /* let margin: float = 0.01; */
@@ -46,6 +46,8 @@ let getNewBirdyVelocity =
     | true when velocity.x < 0.0 => velocity.x +. 1.0
     | false when maxLeft && velocity.x < 0.0 => 0.0
     | false when maxRight && velocity.x > 0.0 => 0.0
+    | false when velocity.x > 0.0 && position.y > 920.0 => velocity.x -. 2.0
+    | false when velocity.x < 0.0 && position.y > 920.0 => velocity.x +. 2.0
     | false => velocity.x +. acceleration.x *. deltaTime
     | _ => 0.0
     };
