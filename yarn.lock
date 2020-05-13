@@ -10,12 +10,6 @@
     Tsdl bsansouci/tsdl
     gl-matrix "*"
 
-"Reprocessing@github:schmavery/reprocessing":
-  version "0.1.0"
-  resolved "https://codeload.github.com/schmavery/reprocessing/tar.gz/1ce7c5373acd1ad3c2c92e7fac3bfe4710bda182"
-  dependencies:
-    Reasongl "github:bsansouci/reasongl"
-
 Tgls@bsansouci/tgls:
   version "0.8.4"
   resolved "https://codeload.github.com/bsansouci/tgls/tar.gz/45c490d8d34425f639b508290c297c5a76277bcf"
